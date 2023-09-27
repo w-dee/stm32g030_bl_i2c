@@ -203,7 +203,7 @@ target_reset:
     {
       // undocumented in AN4221 ?
       // My STM32G030 returns ACK as a protocol version; Rest of
-      // read is all NACK. May be a shurinked version of BL is used.
+      // read is all NACK. May be a shrinken version of BL is used.
       dbg_printf("ACK received as a protocol version. Continuing.\r\n");
       goto successfully_discovered;
     }
@@ -271,7 +271,7 @@ successfully_discovered:
     dbg_printf("Writing %d bytes to address %08x\r\n", (int)num_bytes, (int)address + STM32_BL_FLASH_MEMORY_START);
 
     // write content
-    bl_send_cmd(0x32); // 0x45 = No-Stretch Write Memory command
+    bl_send_cmd(0x32); // 0x32 = No-Stretch Write Memory command
     ret = bl_read();
     if(ret != STM32_BL_I2C_RET_ACK) goto nack_received;
     
