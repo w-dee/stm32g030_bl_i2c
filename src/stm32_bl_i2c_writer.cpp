@@ -103,7 +103,7 @@ void STM32_Bootloader_I2C_Writer::target_reset_into_bl()
     delay(2); // according to the RM, BOOT0 pin is sampled at 4th clock since the reset.
     if(boot0_pin >= 0) pinMode(boot0_pin, INPUT);
     delay(20);
-    wire = wire_begin();
+    if(wire == nullptr) wire = wire_begin();
 }
 
 
@@ -140,61 +140,21 @@ bool STM32_Bootloader_I2C_Writer::write(const uint8_t *binary, uint32_t size, ui
 
     target_reset_into_bl();
 
-    // the target STM32 slave address is 0x56
-    // (sometimes it becomes 0x57)
-    // send "GET" command
-    send_cmd(STM32_BL_I2C_CMD_GET);
-    // receive ACK
+    send_cmd(STM32_BL_I2C_CMD_GET_PROTOCOL_VERSION);
     ret = read();
-    if(ret != STM32_BL_I2C_RET_ACK) 
-    {
-        dbg_printf("The target STM32 does not return the response.\r\n");
-        continue;
-    }
-
-    count = read();
-    if(count >= 255)
-    {
-      dbg_printf("Illegal feature count returned from GET command.\r\n");
-      continue;
-    }
-    dbg_printf("Feature count: %d\r\n", count);
+    if(ret != STM32_BL_I2C_RET_ACK) continue;
     ret = read();
-    if(ret == STM32_BL_I2C_RET_ACK)
-    {
-      // undocumented in AN4221 ?
-      // My STM32G030 returns ACK as a protocol version; Rest of
-      // read is all NACK. May be a shrunken version of BL is used.
-      dbg_printf("ACK received as a protocol version. Continuing.\r\n");
-      goto successfully_discovered;
-    }
-
-    dbg_printf("Protocol version: 0x%02x\r\n", wire->read());
-
-    dbg_printf("Features :");
-    for(int i = 0; i < count; ++i)
-    {
-      dbg_printf("%02X ", read());
-    }
-    dbg_printf("\r\n");
+    dbg_printf("Protocol Version: %d.%d\r\n", ret >> 4, ret & 0x0f);
     ret = read();
     if(ret != STM32_BL_I2C_RET_ACK) continue;
 
+    goto successfully_discovered;
   }
 
   dbg_printf("Target STM32 not found.\r\n");
   return false;
 
 successfully_discovered:
-  // get protocol version
-  send_cmd(STM32_BL_I2C_CMD_GET_PROTOCOL_VERSION);
-  ret = read();
-  if(ret != STM32_BL_I2C_RET_ACK) goto nack_received;
-  ret = read();
-  dbg_printf("Protocol Version: %d.%d\r\n", ret >> 4, ret & 0x0f);
-  ret = read();
-  if(ret != STM32_BL_I2C_RET_ACK) goto nack_received;
-
 
   // erase and write the firmware
   for(; address < size; address += 256)
