@@ -5,8 +5,6 @@
 #define Wire ERROR // in this module, global Wire instance must not be used. use _Wire instead.
 
 
-// CRC32 calculation algorithm taken from https://www.cnblogs.com/shangdawei/archive/2013/04/28/3049789.html
-
 static uint32_t read_le(const unsigned char *ptr)
 {
 	return ((uint32_t)ptr[0]) +
@@ -20,6 +18,7 @@ static constexpr uint32_t POLY_USED_IN_STM32 = 0x04C11DB7u; // polynomial used i
 
 /**
  * Slow but least memory usage implementation of CRC32 as used in STM32
+ * CRC32 calculation algorithm taken from https://www.cnblogs.com/shangdawei/archive/2013/04/28/3049789.html
 */
 static 
 uint32_t stm32_sw_crc32_by_bit(uint32_t crc32, const uint8_t pBuffer[], uint32_t NumOfByte) 

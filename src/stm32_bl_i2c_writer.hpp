@@ -17,7 +17,7 @@ struct STM32_Bootloader_Init_Struct
   /*
     Function object Wire.begin(); 
     By unknown reason, some Wire implementation (at least STM32)
-    does wrongly initialized when the bus is in illegal state (eg. SCL is pulled low).
+    be wrongly initialized when the bus is in illegal state (eg. SCL is pulled low).
     User must provide the function that calls Wire.begin(with your arguments); and
     return the pointer to the TwoWire object.
   */
