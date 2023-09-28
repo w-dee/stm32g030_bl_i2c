@@ -67,6 +67,8 @@ private:
   // issue target a reset
   void target_reset_into_bl();
 
+  // is target already discovered ?
+  bool target_discovered = false;
 
 public:
   // The constructor.
@@ -81,8 +83,8 @@ public:
   // @param address   the start address of the binary. 0 is the first position of flash.
   // @return          false for error, true for success.
   // @note Address must be aligned with flash page size specified with the constructor.
-  //   Size does not need to be aligned, but the any entire flash page which the
-  //   binary (even one byte in the page) is to be written, is to be erased.
+  //   Size does not need to be page-aligned, but content of any one flash page which contain
+  //   binary (even one word in the page), is to be erased.
   //   Writing to the option byte is not supported yet.
   bool write(const uint8_t *binary, uint32_t size, uint32_t address);
 

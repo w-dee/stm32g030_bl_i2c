@@ -125,44 +125,51 @@ bool STM32_Bootloader_I2C_Writer::write(const uint8_t *binary, uint32_t size, ui
   uint32_t count;
 
   uint32_t limit;
-  bool first_try = true;
-  for(limit = millis() +  STM32_BL_I2C_DISCOVERY_RETRY_TIMEOUT;
-    (int32_t)(millis() - limit) < 0; )
+
+  if(!target_discovered)
   {
-    if(!first_try)
+    bool first_try = true;
+    for(limit = millis() +  STM32_BL_I2C_DISCOVERY_RETRY_TIMEOUT;
+        (int32_t)(millis() - limit) < 0; )
     {
+        if(!first_try)
+        {
+            target_reset_into_bl();
+            dbg_printf("Waiting for retry.\r\n");
+            delay(STM32_BL_I2C_DISCOVERY_RETRY_WAIT_TIME);
+            dbg_printf("Retrying.\r\n");
+        }
+        first_try = false;
+
         target_reset_into_bl();
-        dbg_printf("Waiting for retry.\r\n");
-        delay(STM32_BL_I2C_DISCOVERY_RETRY_WAIT_TIME);
-        dbg_printf("Retrying.\r\n");
+
+        send_cmd(STM32_BL_I2C_CMD_GET_PROTOCOL_VERSION);
+        ret = read();
+        if(ret != STM32_BL_I2C_RET_ACK) continue;
+        ret = read();
+        dbg_printf("Protocol Version: %d.%d\r\n", ret >> 4, ret & 0x0f);
+        ret = read();
+        if(ret != STM32_BL_I2C_RET_ACK) continue;
+
+        goto successfully_discovered;
     }
-    first_try = false;
 
-    target_reset_into_bl();
-
-    send_cmd(STM32_BL_I2C_CMD_GET_PROTOCOL_VERSION);
-    ret = read();
-    if(ret != STM32_BL_I2C_RET_ACK) continue;
-    ret = read();
-    dbg_printf("Protocol Version: %d.%d\r\n", ret >> 4, ret & 0x0f);
-    ret = read();
-    if(ret != STM32_BL_I2C_RET_ACK) continue;
-
-    goto successfully_discovered;
+    dbg_printf("Target STM32 not found.\r\n");
+    return false;
   }
 
-  dbg_printf("Target STM32 not found.\r\n");
-  return false;
-
 successfully_discovered:
+  target_discovered = true;
 
   // erase and write the firmware
-  for(; address < size; address += 256)
+  for(uint32_t addr_of_target = address, addr_of_src = 0;
+    addr_of_target < address + size;
+    addr_of_target += 256, addr_of_src += 256)
   {
-    if((address % flash_page_size) == 0)
+    if((addr_of_target % flash_page_size) == 0)
     {
-      uint16_t page_num = (uint16_t)(address / flash_page_size);
-      dbg_printf("Erasing page number %d (flash address %08x)\r\n", (int)page_num, (int)address);
+      uint16_t page_num = (uint16_t)(addr_of_target / flash_page_size);
+      dbg_printf("Erasing page number %d (flash address %08x)\r\n", (int)page_num, (int)addr_of_target);
 
       // the page must be erased
       send_cmd(STM32_BL_I2C_CMD_NO_STRETCH_ERASE_MEMORY); // 0x45 = No-Stretch Erase Memory command
@@ -188,8 +195,8 @@ successfully_discovered:
     }
 
     // write flash content
-    size_t num_bytes = std::min((size_t)256, (size_t)(size - address));
-    dbg_printf("Writing %d bytes to address %08x\r\n", (int)num_bytes, (int)address + STM32_BL_FLASH_MEMORY_START);
+    size_t num_bytes = std::min((size_t)256, (size_t)(size - addr_of_src));
+    dbg_printf("Writing %d bytes to address %08x\r\n", (int)num_bytes, (int)addr_of_target + STM32_BL_FLASH_MEMORY_START);
 
     // write content
     send_cmd(STM32_BL_I2C_CMD_NO_STRETCH_WRITE_MEMORY); // 0x32 = No-Stretch Write Memory command
@@ -197,7 +204,7 @@ successfully_discovered:
     if(ret != STM32_BL_I2C_RET_ACK) goto nack_received;
     
     // send start address
-    uint32_t start_addr = address + STM32_BL_FLASH_MEMORY_START;
+    uint32_t start_addr = addr_of_target + STM32_BL_FLASH_MEMORY_START;
     uint8_t bytes[4] = {
       (uint8_t )(start_addr >> 24),
       (uint8_t )(start_addr >> 16),
@@ -217,7 +224,7 @@ successfully_discovered:
     wire->beginTransmission(target_slave_address);
     wire->write(num_bytes - 1);
     uint8_t sum = num_bytes - 1;
-    for(size_t i = address; i < address + num_bytes; ++i)
+    for(size_t i = addr_of_src; i < addr_of_src + num_bytes; ++i)
     {
       wire->write(binary[i]);
       sum ^= binary[i];
@@ -242,22 +249,29 @@ successfully_discovered:
       (uint8_t )(firmware_bytes >>  8),
       (uint8_t )(firmware_bytes >>  0)
     };
+    uint32_t start_addr = address + STM32_BL_FLASH_MEMORY_START;
+    uint8_t addr_bytes[4] = {
+      (uint8_t )(start_addr >> 24),
+      (uint8_t )(start_addr >> 16),
+      (uint8_t )(start_addr >>  8),
+      (uint8_t )(start_addr >>  0)
+    };
     send_cmd(STM32_BL_I2C_CMD_NO_STRETCH_GET_CHECK_SUM); // 0xa1 = No-Stretch GetCheckSum command
     ret = read();
     if(ret != STM32_BL_I2C_RET_ACK) goto nack_received;
 
-    dbg_printf("Sending start address.\r\n");
+    dbg_printf("Sending start address 0x%08x.\r\n", start_addr);
     wire->beginTransmission(target_slave_address);
-    wire->write(0x08);
-    wire->write(0);
-    wire->write(0);
-    wire->write(0);
-    wire->write(0x08); // checksum
+    wire->write(addr_bytes[0]);
+    wire->write(addr_bytes[1]);
+    wire->write(addr_bytes[2]);
+    wire->write(addr_bytes[3]);
+    wire->write(addr_bytes[0] ^ addr_bytes[1] ^ addr_bytes[2] ^ addr_bytes[3]); // checksum
     wire->endTransmission();
     if(wait_ack()) goto illegal_response;
       
     // send compute size
-    dbg_printf("Sending firmware size.\r\n");
+    dbg_printf("Sending firmware size %d.\r\n", firmware_bytes);
     wire->beginTransmission(target_slave_address);
     wire->write(fb_bytes[0]);
     wire->write(fb_bytes[1]);

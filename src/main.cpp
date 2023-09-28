@@ -87,6 +87,8 @@ constexpr int STM32G030_BOOT0_PIN = PA5; // the host pin connected to the target
 
 
 void setup() {
+  delay(3000);
+
   STM32_Bootloader_Init_Struct bl_init;
   bl_init.wire = nullptr;
   bl_init.target_slave_address = 0x56;
@@ -97,7 +99,17 @@ void setup() {
   bl_init.boot0_pin = STM32G030_BOOT0_PIN;
   STM32_Bootloader_I2C_Writer writer(bl_init);
 
-  writer.write(BM_FIRMWARE_BINARY, BM_FIRMWARE_BINARY_SIZE, 0);
+  writer.write(BM_FIRMWARE_BINARY, 4096, 0);
+  writer.write(BM_FIRMWARE_BINARY + 4096, BM_FIRMWARE_BINARY_SIZE - 4096, 4096);
+  /*
+    Two lines above are for demonstration of writing portions of entire firmware;
+    Of course you can write it in one line:
+
+    writer.write(BM_FIRMWARE_BINARY, BM_FIRMWARE_BINARY_SIZE, 0);
+
+    Results shoule be equivalent.
+  */
+
   writer.target_reset();
 }
 
