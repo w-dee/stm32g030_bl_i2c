@@ -76,7 +76,7 @@ public:
 
   // write the firmware.
   // @param binary    the firmware binary
-  // @param size      the binary size
+  // @param size      the binary size. the size must be multiple of 4.
   // @param address   the start address of the binary. 0 is the first position of flash.
   // @return          false for error, true for success.
   // @note Address must be aligned with flash page size specified with the constructor.

@@ -72,6 +72,11 @@ bool STM32_Bootloader_I2C_Writer::write(const uint8_t *binary, uint32_t size, ui
     dbg_printf("The address %08d must be aligned with flash page size(%d)\r\n", address, flash_page_size);
     return false;
   }
+  if(size % 4 != 0)
+  {
+    dbg_printf("The size %d is not multiple of 4\r\n", size);
+    return false;
+  }
 
 
   uint32_t ret;
