@@ -89,7 +89,7 @@ int STM32_Bootloader_I2C_Writer::wait_ack()
   return -2;
 }
 
-void STM32_Bootloader_I2C_Writer::target_reset()
+void STM32_Bootloader_I2C_Writer::target_reset_into_bl()
 {
     // perform target reset
     if(wire) wire_end(wire), wire = nullptr;
@@ -132,14 +132,14 @@ bool STM32_Bootloader_I2C_Writer::write(const uint8_t *binary, uint32_t size, ui
   {
     if(!first_try)
     {
-        target_reset();
+        target_reset_into_bl();
         dbg_printf("Waiting for retry.\r\n");
         delay(STM32_BL_I2C_DISCOVERY_RETRY_WAIT_TIME);
         dbg_printf("Retrying.\r\n");
     }
     first_try = false;
 
-    target_reset();
+    target_reset_into_bl();
 
     // the target STM32 slave address is 0x56
     // (sometimes it becomes 0x57)
@@ -354,4 +354,12 @@ illegal_response:
   dbg_printf("STM32 firmware uploading failed.\r\n");
   return false;
 
+}
+
+void STM32_Bootloader_I2C_Writer::target_reset()
+{
+  pinMode(nrst_pin, OUTPUT);
+  digitalWrite(nrst_pin, LOW);
+  delay(10);
+  pinMode(nrst_pin, INPUT);
 }

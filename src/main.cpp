@@ -98,6 +98,7 @@ void setup() {
   STM32_Bootloader_I2C_Writer writer(bl_init);
 
   writer.write(BM_FIRMWARE_BINARY, BM_FIRMWARE_BINARY_SIZE, 0);
+  writer.target_reset();
 }
 
 void loop() {

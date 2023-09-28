@@ -65,7 +65,7 @@ private:
   int wait_ack();
 
   // issue target a reset
-  void target_reset();
+  void target_reset_into_bl();
 
 
 public:
@@ -75,7 +75,7 @@ public:
     STM32_Bootloader_Init_Struct(init) {;}
 
 
-  // write the firmware.
+  // Write the firmware.
   // @param binary    the firmware binary
   // @param size      the binary size. the size must be multiple of 4.
   // @param address   the start address of the binary. 0 is the first position of flash.
@@ -85,5 +85,10 @@ public:
   //   binary (even one byte in the page) is to be written, is to be erased.
   //   Writing to the option byte is not supported yet.
   bool write(const uint8_t *binary, uint32_t size, uint32_t address);
+
+  // Issue reset to the target STM32
+  // @note
+  // This performs normal hardware reset (not bootloader reset) to the target STM32
+  void target_reset();
 
 };
