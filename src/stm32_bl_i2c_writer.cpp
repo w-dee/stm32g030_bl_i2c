@@ -93,15 +93,15 @@ void STM32_Bootloader_I2C_Writer::target_reset_into_bl()
     // perform target reset
     if(wire) wire_end(wire), wire = nullptr;
     dbg_printf("Target reset.\r\n");
-    pinMode(boot0_pin, OUTPUT);
-    digitalWrite(boot0_pin, HIGH);
-    pinMode(nrst_pin, OUTPUT);
-    digitalWrite(nrst_pin, LOW);
+    if(boot0_pin >= 0) pinMode(boot0_pin, OUTPUT);
+    if(boot0_pin >= 0) digitalWrite(boot0_pin, HIGH);
+    if(nrst_pin >= 0) pinMode(nrst_pin, OUTPUT);
+    if(nrst_pin >= 0) digitalWrite(nrst_pin, LOW);
     delay(10);
     // release target reset pin
-    pinMode(nrst_pin, INPUT);
+    if(nrst_pin >= 0) pinMode(nrst_pin, INPUT);
     delay(2); // according to the RM, BOOT0 pin is sampled at 4th clock since the reset.
-    pinMode(boot0_pin, INPUT);
+    if(boot0_pin >= 0) pinMode(boot0_pin, INPUT);
     delay(20);
     wire = wire_begin();
 }
@@ -357,8 +357,11 @@ illegal_response:
 
 void STM32_Bootloader_I2C_Writer::target_reset()
 {
-  pinMode(nrst_pin, OUTPUT);
-  digitalWrite(nrst_pin, LOW);
-  delay(10);
-  pinMode(nrst_pin, INPUT);
+  if(nrst_pin >= 0)
+  {
+    pinMode(nrst_pin, OUTPUT);
+    digitalWrite(nrst_pin, LOW);
+    delay(10);
+    pinMode(nrst_pin, INPUT);
+  }
 }
