@@ -44,6 +44,7 @@ class STM32_Bootloader_I2C_Writer : private STM32_Bootloader_Init_Struct
   static constexpr uint8_t STM32_BL_I2C_CMD_GET_PROTOCOL_VERSION = 0x01; //!< "GET Protocol Version" command
   static constexpr uint8_t STM32_BL_I2C_CMD_NO_STRETCH_ERASE_MEMORY = 0x45; //!< No-stretch erase memory command
   static constexpr uint8_t STM32_BL_I2C_CMD_NO_STRETCH_WRITE_MEMORY = 0x32; //!< No-stretch write memory command
+  static constexpr uint8_t STM32_BL_I2C_CMD_NO_STRETCH_GET_CHECK_SUM = 0xa1; //!< No-stretch get check sum command
   
   static constexpr uint8_t STM32_BL_I2C_RET_ACK = 0x79; //!< Acknowledge response from STM32 boot loader 
   static constexpr uint8_t STM32_BL_I2C_RET_NACK = 0x1f; //!< Not acknowledge response from STM32 boot loader
