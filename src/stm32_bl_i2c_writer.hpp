@@ -10,7 +10,10 @@
 class TwoWire;
 struct STM32_Bootloader_Init_Struct
 {
-  TwoWire * wire = nullptr; //!< TwoWire instance to communicate with the target STM32. Specify null if the TwoWire instance is not begin()'ed.
+  // TwoWire instance to communicate with the target STM32. Specify null if the TwoWire instance is not begin()'ed and
+  // to be created by corresponding call to wire_begin().
+  TwoWire * wire = nullptr;
+
   uint8_t target_slave_address = 0x56; //!< Target slave address of the STM32 in 7bit address representation.
   size_t flash_page_size = 2048; //!< Flash page size. This might differ from variant to variant. See data sheet or reference manual.
 
@@ -18,14 +21,14 @@ struct STM32_Bootloader_Init_Struct
     Function object Wire.begin(); 
     By unknown reason, some Wire implementation (at least STM32)
     be wrongly initialized when the bus is in illegal state (eg. SCL is pulled low).
-    User must provide the function that calls Wire.begin(with your arguments); and
+    User can provide the function that calls Wire.begin(with your arguments); and
     return the pointer to the TwoWire object.
   */
   std::function<TwoWire * () > wire_begin;
 
   /*
     Function object Wire.end();
-    User must provide the function that calls Wire.end();
+    User can provide the function that calls Wire.end();
     The function is called with the pointer to TwoWire object which is in turn
     returned by wire_begin().
     see wire_begin for detail.

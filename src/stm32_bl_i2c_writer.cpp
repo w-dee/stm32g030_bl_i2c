@@ -91,7 +91,11 @@ int STM32_Bootloader_I2C_Writer::wait_ack()
 void STM32_Bootloader_I2C_Writer::target_reset_into_bl()
 {
     // perform target reset
-    if(wire) wire_end(wire), wire = nullptr;
+    if(wire)
+    {
+      if(wire_end) wire_end(wire);
+      wire = nullptr;
+    }
     dbg_printf("Target reset.\r\n");
     if(boot0_pin >= 0) pinMode(boot0_pin, OUTPUT);
     if(boot0_pin >= 0) digitalWrite(boot0_pin, HIGH);
@@ -103,7 +107,11 @@ void STM32_Bootloader_I2C_Writer::target_reset_into_bl()
     delay(2); // according to the RM, BOOT0 pin is sampled at 4th clock since the reset.
     if(boot0_pin >= 0) pinMode(boot0_pin, INPUT);
     delay(20);
-    if(wire == nullptr) wire = wire_begin();
+    if(wire == nullptr)
+    if(wire_begin)
+    {
+      wire = wire_begin();
+    }
 }
 
 
@@ -117,6 +125,12 @@ bool STM32_Bootloader_I2C_Writer::write(const uint8_t *binary, uint32_t size, ui
   if(size % 4 != 0)
   {
     dbg_printf("The size %d is not multiple of 4\r\n", size);
+    return false;
+  }
+  if(!wire && !wire_begin)
+  {
+    // both wire and wire_begin are not provided
+    dbg_printf("Specify wire object in constructor, and/or provide wire_begin() function object.\r\n");
     return false;
   }
 
